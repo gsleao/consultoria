@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud & Infra Advisor — Simulador de Migração para a Nuvem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.378.0/dist/umd/lucide.min.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/lucide@0.378.0/dist/umd/lucide.min.js';s.onload=function(){window.icons&&window.icons()};document.head.appendChild(s)"></script>
+<style>
+:root{--bg:#0b1622;--panel:#112233;--line:#1f3448;--cy:#14b8cf;--am:#f6b73c;--tx:#e6eef5;--mut:#8fa6b8}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font-family:'IBM Plex Sans',sans-serif;
+background-image:linear-gradient(rgba(20,184,207,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(20,184,207,.05) 1px,transparent 1px);background-size:36px 36px}
+h1,h2,h3,.sg{font-family:'Space Grotesk',sans-serif}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.btn{padding:.7rem 1.2rem;border-radius:8px;font-weight:600;transition:.15s;cursor:pointer}
+.btn-p{background:var(--cy);color:#06222a}.btn-p:hover{filter:brightness(1.1)}
+.btn-a{background:var(--am);color:#2a1d00}.btn-a:hover{filter:brightness(1.1)}
+.btn-g{border:1px solid var(--line);color:var(--tx)}.btn-g:hover{border-color:var(--cy)}
+input[type=text],select{background:#0b1622;border:1px solid var(--line);border-radius:8px;padding:.65rem .8rem;width:100%;color:var(--tx)}
+input:focus,select:focus,.btn:focus-visible{outline:2px solid var(--cy);outline-offset:2px}
+.opt{display:block;cursor:pointer}
+.opt input{position:absolute;opacity:0}
+.opt span{display:block;padding:.6rem .8rem;border:1px solid var(--line);border-radius:8px;font-size:.9rem;color:var(--mut);transition:.15s}
+.opt:hover span{border-color:var(--cy)}
+.opt input:checked+span{background:rgba(20,184,207,.15);border-color:var(--cy);color:var(--tx)}
+.opt input:focus-visible+span{outline:2px solid var(--am)}
+.bar{height:8px;background:#0b1622;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;border-radius:99px;transition:width 1s}
+.chk li{display:flex;gap:.5rem;padding:.35rem 0;font-size:.9rem}
+.light{background:#fff;color:#12202e}
+@media print{
+ body{background:#fff!important;color:#000}
+ #hero,#form,.noprint{display:none!important}
+ footer{border-top:1px solid #ccc;padding-top:8px}
+ #result{display:block!important}
+ .panel{background:#fff!important;border-color:#ccc!important;break-inside:avoid}
+ #rhead{background:#0b1622!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ *{color-adjust:exact;-webkit-print-color-adjust:exact}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header id="hero" class="max-w-5xl mx-auto px-5 pt-10 pb-12">
+  <div class="flex items-center gap-3 mb-12">
+    <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:var(--cy)"><i data-lucide="cloud" class="text-[#06222a]"></i></div>
+    <div><div class="sg font-bold text-lg leading-tight">Cloud &amp; Infra Advisor</div><div class="text-sm" style="color:var(--mut)">Consultoria em Transformação Digital</div></div>
+  </div>
+  <h1 class="text-4xl md:text-5xl font-bold leading-tight max-w-3xl">Sua infraestrutura local está pronta para a nuvem?</h1>
+  <p class="mt-5 max-w-2xl text-lg" style="color:var(--mut)">Esta ferramenta avalia seus servidores físicos, o risco de perda de dados, a conectividade e os custos de TI, e indica o modelo ideal de nuvem para a sua empresa: IaaS, PaaS ou SaaS.</p>
+  <div class="mt-8 flex flex-wrap gap-3">
+    <button class="btn btn-p" onclick="document.getElementById('form').scrollIntoView()">Iniciar diagnóstico</button>
+    <button class="btn btn-a" onclick="demo()">Carregar Caso Exemplo (Demo)</button>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-5 pb-16">
+<section id="form" class="mb-14">
+  <h2 class="text-2xl font-bold mb-5">Formulário de diagnóstico</h2>
+  <form id="f" class="space-y-6" novalidate>
+    <div id="live" class="sticky top-0 z-20 panel p-3 flex items-center gap-4" style="background:#0d1b2a" aria-live="polite">
+      <div class="sg text-2xl font-bold w-20 text-center" id="lnum" style="color:var(--cy)">0%</div>
+      <div class="flex-1"><div class="flex justify-between text-xs mb-1" style="color:var(--mut)"><span>Score de prontidão para a nuvem (em tempo real)</span><span id="lcount">0/8 respondidas</span></div><div class="bar"><i id="lbar" style="width:0;background:var(--cy)"></i></div></div>
+    </div>
+    <div class="panel p-5 grid md:grid-cols-3 gap-4">
+      <label class="block"><span class="text-sm" style="color:var(--mut)">Nome da empresa *</span><input type="text" id="nome" required placeholder="Ex.: Metalúrgica Horizonte Ltda"></label>
+      <label class="block"><span class="text-sm" style="color:var(--mut)">Setor</span>
+        <select id="setor"><option>Varejo</option><option>Indústria</option><option>Saúde</option><option>Serviços</option><option>Educação</option><option>Financeiro</option><option>Logística</option></select></label>
+      <label class="block"><span class="text-sm" style="color:var(--mut)">Porte</span>
+        <select id="porte"><option value="Micro">Micro (até 9)</option><option value="Pequena">Pequena (10–49)</option><option value="Média">Média (50–249)</option><option value="Grande">Grande (250+)</option></select></label>
+    </div>
+    <div id="qs" class="space-y-5"></div>
+    <p id="err" class="text-red-400 hidden"></p>
+    <div class="flex flex-wrap gap-3">
+      <button type="submit" class="btn btn-p">Gerar diagnóstico</button>
+      <button type="button" class="btn btn-a" onclick="demo()">Carregar Caso Exemplo (Demo)</button>
+      <button type="button" class="btn btn-g" onclick="limpar()">Limpar</button>
+    </div>
+  </form>
+</section>
+
+<section id="result" class="hidden">
+  <div id="rhead" class="rounded-xl p-6 md:p-8 mb-5" style="background:#07111b;border:1px solid var(--line)">
+    <div class="grid md:grid-cols-[auto,1fr] gap-8 items-center">
+      <div class="relative w-44 h-44 mx-auto">
+        <svg viewBox="0 0 120 120" class="w-full h-full -rotate-90"><circle cx="60" cy="60" r="52" fill="none" stroke="#1f3448" stroke-width="10"/><circle id="gauge" cx="60" cy="60" r="52" fill="none" stroke="#14b8cf" stroke-width="10" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7" style="transition:stroke-dashoffset 1.4s ease"/></svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center"><div id="gnum" class="sg text-4xl font-bold">0</div><div class="text-xs" style="color:var(--mut)">nota geral</div></div>
+      </div>
+      <div>
+        <div class="text-sm" style="color:var(--mut)">Laudo técnico de prontidão para a nuvem</div>
+        <h2 id="rnome" class="text-3xl font-bold"></h2>
+        <div id="rmeta" class="mb-3" style="color:var(--mut)"></div>
+        <span id="seal" class="inline-block px-3 py-1 rounded-full text-sm font-semibold"></span>
+        <p id="resumo" class="mt-3"></p>
+        <div class="mt-3 flex items-center gap-2"><i data-lucide="server-cog" style="color:var(--am)"></i><span>Modelo recomendado: <b id="modelo" style="color:var(--am)"></b></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="cards" class="grid md:grid-cols-3 gap-4 mb-5"></div>
+
+  <div class="panel p-5 mb-5">
+    <h3 class="text-lg font-semibold mb-2">Situação atual × meta cloud-ready</h3>
+    <div class="max-w-md mx-auto"><canvas id="radar"></canvas></div>
+  </div>
+
+  <div class="panel p-5 mb-5">
+    <h3 class="text-xl font-bold mb-3">Plano de Boas Práticas do Especialista</h3>
+    <div id="expl" class="mb-5 p-4 rounded-lg" style="background:#0b1622;border-left:3px solid var(--cy)"></div>
+    <h4 class="font-semibold mb-2">Pontos críticos encontrados</h4>
+    <div id="crit" class="space-y-2 mb-6"></div>
+    <div class="grid md:grid-cols-2 gap-5 mb-6">
+      <div><h4 class="font-semibold mb-1">Checklist de Backup (Regra 3-2-1)</h4><ul class="chk" id="c1"></ul></div>
+      <div><h4 class="font-semibold mb-1">Checklist de Migração Segura</h4><ul class="chk" id="c2"></ul></div>
+    </div>
+    <h4 class="font-semibold mb-2">Roadmap em 4 etapas</h4>
+    <div id="road" class="grid md:grid-cols-4 gap-3"></div>
+  </div>
+
+  <p class="text-sm" style="color:var(--mut)">Laudo gerado em <span id="data"></span>. As recomendações são orientativas e não substituem uma avaliação técnica presencial.</p>
+  <button class="btn btn-p mt-5 noprint" onclick="window.print()">Imprimir / Exportar Laudo em PDF</button>
+</section>
+</main>
+<footer class="max-w-5xl mx-auto px-5 pb-10">
+  <div class="panel p-4 flex gap-3 items-start text-sm" style="color:var(--mut)">
+    <i data-lucide="lock" style="color:var(--cy);flex:none"></i>
+    <p><b style="color:var(--tx)">Privacy by Design (LGPD):</b> todos os dados informados são processados localmente no seu navegador. Nada é enviado, armazenado ou compartilhado com servidores externos.</p>
+  </div>
+</footer>
+
+<script>
+const CATS={inf:['Infraestrutura',.30],bkp:['Backup & Dados',.30],con:['Conectividade',.25],cus:['Custos',.15]};
+const Q=[
+{c:'inf',s:'Idade',t:'Qual a idade média dos seus servidores físicos?',o:['Mais de 7 anos','De 5 a 7 anos','De 3 a 5 anos','Menos de 3 anos'],ic:'hard-drive',sev:'Hardware em fim de vida',rec:'Servidores antigos têm alto risco de falha e sem garantia. Priorize a migração das cargas críticas.'},
+{c:'inf',s:'Virtualização',t:'Qual o nível de virtualização dos servidores?',o:['Nenhum, tudo em máquinas físicas','Poucos servidores virtualizados','Maioria virtualizada','Totalmente virtualizado ou em contêineres'],ic:'layers',sev:'Baixa virtualização',rec:'Virtualize antes de migrar: reduz custo, facilita o lift-and-shift e melhora a recuperação.'},
+{c:'inf',s:'Sistemas',t:'Como são seus sistemas de negócio (ERP, e-mail, arquivos)?',o:['Legados, instalados em servidor local, sem suporte','Desktop/cliente-servidor local com suporte limitado','Parte web e parte local','Maioria web ou já em SaaS'],ic:'database',sev:'Sistemas legados',rec:'Mapeie dependências e avalie modernizar ou encapsular o sistema legado antes da migração.'},
+{c:'bkp',s:'Frequência',t:'Com que frequência é feito o backup dos dados críticos?',o:['Raramente ou nunca','Semanal ou manual','Diário','Contínuo ou várias vezes ao dia, automatizado'],ic:'timer',sev:'Risco de perda de dados',rec:'Automatize backups diários no mínimo e defina RPO formal para os dados críticos.'},
+{c:'bkp',s:'Armazenamento',t:'Onde e como os backups são armazenados?',o:['No próprio servidor ou HD local','Em HD externo no mesmo prédio','Em NAS local com cópia ocasional externa','Cópia off-site ou em nuvem, criptografada e imutável'],ic:'shield-alert',sev:'Backup sem proteção off-site',rec:'Adote a regra 3-2-1 com cópia off-site imutável para resistir a ransomware e desastres.'},
+{c:'con',s:'Estabilidade',t:'Qual a estabilidade da conexão com a internet?',o:['Quedas frequentes, link único','Quedas semanais','Estável, com poucas quedas','Muito estável, com link redundante'],ic:'wifi-off',sev:'Conectividade insuficiente',rec:'Contrate link redundante (dois provedores) com SLA antes de depender da nuvem.'},
+{c:'con',s:'Banda',t:'Qual a largura de banda disponível por usuário?',o:['Menos de 1 Mbps','1 a 3 Mbps','3 a 10 Mbps','Mais de 10 Mbps'],ic:'gauge',sev:'Banda limitada',rec:'Dimensione a banda para o pico de uso e aplique QoS; considere um link dedicado.'},
+{c:'cus',s:'Custos',t:'Como são os custos operacionais de TI local (energia, manutenção, licenças)?',o:['Muito altos e imprevisíveis','Altos','Moderados','Baixos e previsíveis'],ic:'trending-up',sev:'Custos operacionais elevados',rec:'Levante o TCO atual e compare com a nuvem; aplique FinOps para controlar o consumo.'}
+];
+const MODELS={
+'IaaS (Lift-and-Shift)':'Você move servidores praticamente como estão para máquinas virtuais na nuvem. É o caminho mais rápido para sair de hardware antigo e mantém sistemas legados funcionando, com a vantagem de pagar só pelo que usa. Depois, modernize aos poucos.',
+'SaaS':'Para empresas menores com sistemas web, o melhor é contratar softwares prontos (ERP, e-mail, arquivos) como serviço. Você elimina servidores, reduz a manutenção e transfere atualizações e segurança de infraestrutura ao provedor.',
+'PaaS (Replatform)':'Com alta virtualização, suas aplicações já estão prontas para rodar em plataformas gerenciadas. O PaaS dispensa gerenciar sistema operacional e banco de dados, e ganha escalabilidade com pouco ajuste de código.',
+'Híbrido: IaaS + SaaS':'Seu cenário mistura sistemas que podem virar SaaS (e-mail, arquivos, colaboração) com cargas que precisam de IaaS (ERP e aplicações específicas). A migração em fases reduz risco e custo.'};
+const BK=['3 cópias dos dados (1 produção + 2 backups)','2 mídias diferentes (disco, fita, nuvem)','1 cópia off-site imutável','Backup automatizado, sem depender de ação manual','Criptografia AES-256 em trânsito e em repouso','RPO e RTO definidos e documentados','Teste de restauração mensal','Política de retenção (diária, semanal, mensal)','Alertas de falha e relatórios de execução'];
+const MG=['Inventário completo de ativos e dependências','MFA em todas as contas, especialmente as administrativas','Princípio do menor privilégio no acesso','Segmentação de rede','VPN ou conexão privada com a nuvem','Logs centralizados e monitoramento','Migração piloto com sistema de baixo risco','Plano de rollback testado','FinOps: orçamento, tags e alertas de custo','Adequação à LGPD (dados pessoais e contratos)'];
+const RD=[['search','Avaliar','Inventário, TCO atual e priorização das cargas.'],['shield-check','Proteger','Backup 3-2-1, MFA, rede segmentada e conectividade.'],['rocket','Migrar','Piloto, ondas de migração e plano de rollback.'],['sliders-horizontal','Otimizar','FinOps, monitoramento e modernização contínua.']];
+
+const qs=document.getElementById('qs');
+Q.forEach((q,i)=>{
+ qs.insertAdjacentHTML('beforeend',`<fieldset class="panel p-5"><legend class="sr-only">${q.t}</legend>
+ <div class="flex flex-wrap items-baseline justify-between gap-2 mb-3"><h3 class="font-semibold">${String.fromCharCode(97+i)}) ${q.t}</h3><span class="text-xs px-2 py-1 rounded" style="background:#0b1622;color:var(--cy)">${CATS[q.c][0]}</span></div>
+ <div class="grid sm:grid-cols-2 gap-2">${q.o.map((o,j)=>`<label class="opt relative"><input type="radio" name="q${i}" value="${j+1}"><span>${o}</span></label>`).join('')}</div></fieldset>`);
+});
+const $=id=>document.getElementById(id);
+const col=n=>n<40?'#ef4444':n<70?'#f6b73c':'#22c55e';
+let chart;
+function live(){
+ const num={},den={};let n=0;
+ Q.forEach((q,i)=>{const r=document.querySelector(`input[name=q${i}]:checked`);if(!r)return;n++;num[q.c]=(num[q.c]||0)+ +r.value-1;den[q.c]=(den[q.c]||0)+3});
+ let w=0,t=0;for(const k in den){t+=num[k]/den[k]*CATS[k][1];w+=CATS[k][1]}
+ const p=w?Math.round(t/w*100):0;
+ $('lnum').textContent=p+'%';$('lnum').style.color=col(p);$('lbar').style.width=p+'%';$('lbar').style.background=col(p);
+ $('lcount').textContent=n+'/8 respondidas'+(n<8?' (parcial)':'');
+}
+function icons(){try{if(window.lucide&&lucide.createIcons)lucide.createIcons()}catch(e){console.warn('Lucide indisponível',e)}}
+
+function limpar(){$('f').reset();$('result').classList.add('hidden');$('err').classList.add('hidden')}
+function demo(){
+ $('nome').value='Metalúrgica Horizonte Ltda';$('setor').value='Indústria';$('porte').value='Média';
+ [1,1,1,2,1,2,2,1].forEach((v,i)=>document.querySelector(`input[name=q${i}][value="${v}"]`).checked=true);
+ live();gerar();
+}
+$('f').addEventListener('submit',e=>{e.preventDefault();gerar()});
+$('f').addEventListener('change',live);
+$('f').addEventListener('reset',()=>setTimeout(live,0));
+
+function gerar(){
+ const nome=$('nome').value.trim(),err=$('err');
+ const a=Q.map((_,i)=>{const r=document.querySelector(`input[name=q${i}]:checked`);return r?+r.value:0});
+ if(!nome){err.textContent='Informe o nome da empresa.';err.classList.remove('hidden');$('nome').focus();return}
+ if(a.includes(0)){err.textContent='Responda todas as 8 perguntas para gerar o diagnóstico.';err.classList.remove('hidden');return}
+ err.classList.add('hidden');
+ const sc={};let geral=0;
+ for(const k in CATS){const ix=Q.map((q,i)=>q.c===k?i:-1).filter(i=>i>=0);const sum=ix.reduce((s,i)=>s+a[i],0);sc[k]=Math.round((sum-ix.length)/(ix.length*3)*100);geral+=sc[k]*CATS[k][1]}
+ geral=Math.round(geral);
+ const porte=$('porte').value,setor=$('setor').value;
+ let m;
+ if(a[2]<=2&&a[1]<=2)m='IaaS (Lift-and-Shift)';
+ else if((porte==='Micro'||porte==='Pequena')&&a[2]>=3)m='SaaS';
+ else if(a[1]>=3)m='PaaS (Replatform)';
+ else m='Híbrido: IaaS + SaaS';
+ const seal=geral<40?['Crítico','#ef4444','Sua infraestrutura apresenta riscos graves. Corrija backup e conectividade antes de qualquer migração.']:geral<70?['Risco Moderado','#f6b73c','Há uma boa base, mas existem lacunas que devem ser tratadas para uma migração segura.']:['Pronto para Cloud','#22c55e','Sua estrutura está madura. Você pode planejar a migração com poucos ajustes.'];
+
+ $('rnome').textContent=nome;$('rmeta').textContent=`${setor} — porte ${porte}`;
+ const s=$('seal');s.textContent=seal[0];s.style.background=seal[1]+'33';s.style.color=seal[1];s.style.border='1px solid '+seal[1];
+ $('resumo').textContent=seal[2];$('modelo').textContent=m;
+ $('expl').innerHTML=`<b>${m}</b><p class="mt-1 text-sm" style="color:var(--mut)">${MODELS[m]}</p>`;
+
+ $('cards').innerHTML=['inf','bkp','con'].map(k=>`<div class="panel p-5"><div class="flex justify-between items-baseline"><h3 class="font-semibold">${CATS[k][0]}</h3><span class="sg text-2xl font-bold" style="color:${col(sc[k])}">${sc[k]}</span></div><div class="bar mt-3"><i style="width:0;background:${col(sc[k])}" data-w="${sc[k]}"></i></div></div>`).join('');
+
+ const crit=Q.map((q,i)=>({q,v:a[i]})).filter(x=>x.v<=2);
+ $('crit').innerHTML=crit.length?crit.map(({q,v})=>{const c=v===1?'#ef4444':'#f6b73c';return `<div class="flex gap-3 p-3 rounded-lg" style="background:#0b1622;border-left:3px solid ${c}"><i data-lucide="${q.ic}" style="color:${c};flex:none"></i><div><div class="font-semibold">${q.sev} <span class="text-xs font-normal" style="color:${c}">${v===1?'severidade alta':'severidade média'}</span></div><div class="text-sm" style="color:var(--mut)">${q.rec}</div></div></div>`}).join(''):'<p class="text-sm" style="color:#22c55e">Nenhum ponto crítico identificado.</p>';
+
+ $('c1').innerHTML=BK.map(t=>`<li><i data-lucide="square-check" class="w-4 h-4 mt-1" style="color:var(--cy);flex:none"></i>${t}</li>`).join('');
+ $('c2').innerHTML=MG.map(t=>`<li><i data-lucide="square-check" class="w-4 h-4 mt-1" style="color:var(--am);flex:none"></i>${t}</li>`).join('');
+ $('road').innerHTML=RD.map((r,i)=>`<div class="p-4 rounded-lg" style="background:#0b1622;border:1px solid var(--line)"><div class="flex items-center gap-2 mb-1"><i data-lucide="${r[0]}" style="color:var(--cy)"></i><b>${i+1}. ${r[1]}</b></div><p class="text-sm" style="color:var(--mut)">${r[2]}</p></div>`).join('');
+ $('data').textContent=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+
+ $('result').classList.remove('hidden');
+ icons();
+
+ const g=$('gauge');g.style.strokeDashoffset=326.7;g.style.stroke=col(geral);
+ let n=0;$('gnum').textContent=0;
+ requestAnimationFrame(()=>{g.style.strokeDashoffset=326.7*(1-geral/100);
+  const t=setInterval(()=>{n=Math.min(geral,n+Math.ceil(geral/40||1));$('gnum').textContent=n;if(n>=geral)clearInterval(t)},35)});
+ document.querySelectorAll('#cards .bar i').forEach(b=>setTimeout(()=>b.style.width=b.dataset.w+'%',60));
+
+ const vals=a.map(v=>Math.round((v-1)/3*100));
+ if(chart)chart.destroy();
+ chart=new Chart($('radar'),{type:'radar',data:{labels:Q.map(q=>q.s),datasets:[
+  {label:'Situação atual',data:vals,borderColor:'#14b8cf',backgroundColor:'rgba(20,184,207,.25)',pointBackgroundColor:'#14b8cf'},
+  {label:'Meta cloud-ready',data:Q.map(()=>100),borderColor:'#f6b73c',borderDash:[6,4],backgroundColor:'transparent',pointRadius:0}]},
+  options:{scales:{r:{min:0,max:100,ticks:{stepSize:25,color:'#8fa6b8',backdropColor:'transparent'},grid:{color:'#1f3448'},angleLines:{color:'#1f3448'},pointLabels:{color:'#e6eef5',font:{size:12}}}},plugins:{legend:{labels:{color:'#e6eef5'}}}}});
+ $('result').scrollIntoView({behavior:'smooth'});
+}
+window.icons=icons;
+document.addEventListener('DOMContentLoaded',()=>{icons();live()});
+</script>
+</body>
+</html>
