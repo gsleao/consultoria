@@ -3,7 +3,7 @@
 **Acesse o Aplicativo Online (GitHub Pages):** [Clique aqui para abrir o App](https://SEU-USUARIO.github.io/NOME-DO-REPOSITORIO/)
 
 ## Especialistas Responsáveis (Autores)
-* Gustavo Leão da Silva (Laluy)
+* Gustavo Leão da Silva (gsleao)
 * **Unidade Curricular:** Exploração Digital e Fundamentos Tecnológicos (Objetos de Conhecimento 05 e 06)[cite: 10]
 
 ## 1.0 Problema Empresarial e Objetivo do Aplicativo
