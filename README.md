@@ -1,6 +1,6 @@
 # Cloud & Infra Advisor - Consultoria em Transformação Digital
 
-**Acesse o Aplicativo Online (GitHub Pages):** [Clique aqui para abrir o App](https://SEU-USUARIO.github.io/NOME-DO-REPOSITORIO/)
+**Acesse o Aplicativo Online (GitHub Pages):** [Clique aqui para abrir o App](https://gsleao.github.io/consultoria/)
 
 ## Especialistas Responsáveis (Autores)
 * Gustavo Leão da Silva (gsleao)
